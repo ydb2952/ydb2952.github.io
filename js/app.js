@@ -22,7 +22,8 @@ async function init() {
     bindEvents();
   } catch (error) {
     console.error('初始化失败:', error);
-    showToast('初始化失败，请刷新页面重试');
+    const errorMsg = error ? error.message || error.toString();
+    showToast(`初始化失败: ${errorMsg}，请稍后重试`);
   }
 }
 
@@ -122,7 +123,6 @@ async function renderCartItems() {
   const itemsHtml = await Promise.all(cart.map(async item => {
     const dish = dishes.find(d => d.id === item.dishId);
     if (!dish) return '';
-
     return `
       <div class="cart-item" data-id="${item.dishId}">
         <div class="cart-item-info">
@@ -146,7 +146,6 @@ async function renderCartItems() {
     const dish = dishes.find(d => d.id === item.dishId);
     return sum + (dish ? dish.price * item.quantity : 0);
   }, 0);
-
   document.getElementById('cartTotal').textContent = `¥${total.toFixed(2)}`;
 }
 
@@ -193,7 +192,6 @@ function updateCartQuantity(dishId, delta) {
 // 清空购物车
 async function clearCart() {
   if (cart.length === 0) return;
-
   const confirmed = await confirmDialog('确定要清空购物袋吗？');
   if (confirmed) {
     cart = [];
@@ -211,7 +209,10 @@ async function checkout() {
   }
 
   const note = document.getElementById('orderNote').value.trim();
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = cart.reduce((sum, item) => {
+    const dish = dishes.find(d => d.id === item.dishId);
+    return sum + (dish ? dish.price * item.quantity : 0);
+  }, 0);
 
   const order = {
     id: generateId(),

@@ -11,12 +11,6 @@ async function init() {
   try {
     await db.init();
     await loadData();
-
-    // 获取当前标签页
-    const urlParams = new URLSearchParams(window.location.search);
-    currentTab = urlParams.get('tab') || 'dishes';
-
-    switchTab(currentTab);
     bindEvents();
   } catch (error) {
     console.error('初始化失败:', error);
@@ -26,8 +20,8 @@ async function init() {
 
 // 加载数据
 async function loadData() {
-  dishes = await db.getDishes();
   categories = await db.getCategories();
+  dishes = await db.getDishes();
 }
 
 // 切换标签页
@@ -50,7 +44,7 @@ function switchTab(tab) {
     renderCategories();
   } else if (tab === 'orders') {
     orderManagement.style.display = 'block';
-    initOrderFilters().then(() => renderOrders());
+    renderOrders();
   }
 }
 
@@ -65,7 +59,6 @@ async function renderAdminDishes() {
 
   const dishesHtml = await Promise.all(dishes.map(async dish => {
     const imageUrl = dish.image ? await blobToDataURL(dish.image) : '';
-
     return `
       <div class="dish-card" data-id="${dish.id}">
         ${imageUrl ? `<img src="${imageUrl}" alt="${dish.name}" class="dish-image">` : '<div class="dish-image"></div>'}
@@ -108,104 +101,6 @@ function renderCategories() {
   `).join('');
 }
 
-// 渲染订单列表
-async function renderOrders() {
-  const orders = await db.getOrders();
-  const list = document.getElementById('orderList');
-  const filterYear = document.getElementById('filterYear').value;
-  const filterMonth = document.getElementById('filterMonth').value;
-  const filterDay = document.getElementById('filterDay').value;
-
-  // 根据筛选条件过滤订单
-  const filteredOrders = orders.filter(order => {
-    const date = new Date(order.createdAt);
-    const year = String(date.getFullYear());
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-
-    if (filterYear && year !== filterYear) return false;
-    if (filterMonth && month !== filterMonth) return false;
-    if (filterDay && day !== filterDay) return false;
-    return true;
-  });
-
-  if (filteredOrders.length === 0) {
-    list.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 40px;">暂无订单记录</p>';
-    return;
-  }
-
-  list.innerHTML = filteredOrders.map(order => {
-    const itemsSummary = order.items.map(item => `${item.dishName} x${item.quantity}`).join(', ');
-    return `
-      <div class="order-item">
-        <div class="order-header">
-          <span class="order-date">${formatDate(order.createdAt)}</span>
-          <span class="order-total">¥${order.totalAmount.toFixed(2)}</span>
-        </div>
-        <div class="order-items">${itemsSummary}</div>
-        ${order.note ? `<div class="order-note">备注: ${order.note}</div>` : ''}
-      </div>
-    `;
-  }).join('');
-}
-
-// 初始化订单筛选器
-function initOrderFilters() {
-  return db.getOrders().then(orders => {
-    const yearSelect = document.getElementById('filterYear');
-    const monthSelect = document.getElementById('filterMonth');
-    const daySelect = document.getElementById('filterDay');
-
-    // 获取所有订单的年份、月份、日期
-    const years = new Set();
-    const months = new Set();
-    const days = new Set();
-
-    orders.forEach(order => {
-      const date = new Date(order.createdAt);
-      years.add(String(date.getFullYear()));
-      months.add(String(date.getMonth() + 1).padStart(2, '0'));
-      days.add(String(date.getDate()).padStart(2, '0'));
-    });
-
-    // 填充年份
-    yearSelect.innerHTML = '<option value="">全部年份</option>';
-    [...years].sort().reverse().forEach(year => {
-      yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
-    });
-
-    // 填充月份
-    monthSelect.innerHTML = '<option value="">全部月份</option>';
-    ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].forEach(month => {
-      if (months.has(month)) {
-        monthSelect.innerHTML += `<option value="${month}">${month}月</option>`;
-      }
-    });
-
-    // 填充日期
-    daySelect.innerHTML = '<option value="">全部日期</option>';
-    ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31'].forEach(day => {
-      if (days.has(day)) {
-        daySelect.innerHTML += `<option value="${day}">${day}日</option>`;
-      }
-    });
-  });
-}
-
-// 更新月份和日期筛选器
-function updateMonthDayFilters() {
-  const yearSelect = document.getElementById('filterYear');
-  const monthSelect = document.getElementById('filterMonth');
-  const selectedYear = yearSelect.value;
-  const selectedMonth = monthSelect.value;
-
-  // 如果选择了年份，只显示该年有的月份；如果没选年份，显示所有有订单的月份
-  // 这里简化处理：直接重新初始化所有筛选器
-  initOrderFilters();
-  yearSelect.value = selectedYear;
-  monthSelect.value = selectedMonth;
-}
-
 // 打开菜品表单
 async function openDishModal(dish = null) {
   const modal = document.getElementById('dishModal');
@@ -232,7 +127,7 @@ async function openDishModal(dish = null) {
   // 编辑模式：填充表单数据
   if (dish && typeof dish === 'object' && dish.id) {
     editingDish = dish;
-    selectedImage = dish.image; // 现在是 URL 字符串
+    selectedImage = dish.image;
     title.textContent = '编辑菜品';
     document.getElementById('dishId').value = dish.id;
     document.getElementById('dishName').value = dish.name || '';
@@ -287,25 +182,19 @@ async function saveDish() {
   }
 
   try {
+    const dishData = {
+      id: editingDish ? editingDish.id : generateId(),
+      name,
+      price,
+      category,
+      image: selectedImage
+    };
+
     if (editingDish) {
-      await db.updateDish({
-        ...editingDish,
-        name,
-        price,
-        category,
-        image: selectedImage
-      });
+      await db.updateDish(dishData);
       showToast('菜品更新成功');
     } else {
-      const dish = {
-        id: generateId(),
-        name,
-        price,
-        category,
-        image: selectedImage,
-        createdAt: Date.now()
-      };
-      await db.addDish(dish);
+      await db.addDish(dishData);
       showToast('菜品添加成功');
     }
 
@@ -335,6 +224,7 @@ async function deleteDish(id) {
       showToast('菜品删除成功');
       await loadData();
       renderAdminDishes();
+      closeDishModal();
     } catch (error) {
       console.error('删除菜品失败:', error);
       showToast('删除失败，请重试');
@@ -377,6 +267,7 @@ function closeCategoryModal() {
 // 保存分类
 async function saveCategory() {
   const name = document.getElementById('categoryName').value.trim();
+  const id = document.getElementById('categoryId').value;
 
   if (!name) {
     showToast('请输入分类名称');
@@ -384,19 +275,17 @@ async function saveCategory() {
   }
 
   try {
+    const categoryData = {
+      id: id || generateId(),
+      name,
+      order: categories.length
+    };
+
     if (editingCategory) {
-      await db.updateCategory({
-        ...editingCategory,
-        name
-      });
+      await db.updateCategory(categoryData);
       showToast('分类更新成功');
     } else {
-      const category = {
-        id: generateId(),
-        name,
-        order: categories.length
-      };
-      await db.addCategory(category);
+      await db.addCategory(categoryData);
       showToast('分类添加成功');
     }
 
@@ -426,11 +315,109 @@ async function deleteCategory(id) {
       showToast('分类删除成功');
       await loadData();
       renderCategories();
+      closeCategoryModal();
     } catch (error) {
       console.error('删除分类失败:', error);
       showToast('删除失败，请重试');
     }
   }
+}
+
+// 渲染订单列表
+async function renderOrders() {
+  const orders = await db.getOrders();
+  const list = document.getElementById('orderList');
+  const filterYear = document.getElementById('filterYear').value;
+  const filterMonth = document.getElementById('filterMonth').value;
+  const filterDay = document.getElementById('filterDay').value;
+
+  // 根据筛选条件过滤订单
+  const filteredOrders = orders.filter(order => {
+    const date = new Date(order.created_at || order.createdAt);
+    const year = String(date.getFullYear());
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    if (filterYear && year !== filterYear) return false;
+    if (filterMonth && month !== filterMonth) return false;
+    if (filterDay && day !== filterDay) return false;
+    return true;
+  });
+
+  if (filteredOrders.length === 0) {
+    list.innerHTML = '<p style="text-align: center; color: var(--gray); padding: 40px;">暂无订单记录</p>';
+    return;
+  }
+
+  list.innerHTML = filteredOrders.map(order => {
+    const itemsSummary = order.items.map(item => `${item.dishName} x${item.quantity}`).join(', ');
+    return `
+      <div class="order-item">
+        <div class="order-header">
+          <span class="order-date">${formatDate(order.created_at || order.createdAt)}</span>
+          <span class="order-total">¥${order.totalAmount.toFixed(2)}</span>
+        </div>
+        <div class="order-items">${itemsSummary}</div>
+        ${order.note ? `<div class="order-note">备注: ${order.note}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// 初始化订单筛选器
+async function initOrderFilters() {
+  const orders = await db.getOrders();
+  const yearSelect = document.getElementById('filterYear');
+  const monthSelect = document.getElementById('filterMonth');
+  const daySelect = document.getElementById('filterDay');
+
+  // 获取所有订单的年份、月份、日期
+  const years = new Set();
+  const months = new Set();
+  const days = new Set();
+
+  orders.forEach(order => {
+    const date = new Date(order.created_at || order.createdAt);
+    years.add(String(date.getFullYear()));
+    months.add(String(date.getMonth() + 1).padStart(2, '0'));
+    days.add(String(date.getDate()).padStart(2, '0'));
+  });
+
+  // 填充年份
+  yearSelect.innerHTML = '<option value="">全部年份</option>';
+  [...years].sort().reverse().forEach(year => {
+    yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
+  });
+
+  // 填充月份
+  monthSelect.innerHTML = '<option value="">全部月份</option>';
+  ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].forEach(month => {
+    if (months.has(month)) {
+      monthSelect.innerHTML += `<option value="${month}">${month}月</option>`;
+    }
+  });
+
+  // 填充日期
+  daySelect.innerHTML = '<option value="">全部日期</option>';
+  ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31'].forEach(day => {
+    if (days.has(day)) {
+      daySelect.innerHTML += `<option value="${day}">${day}日</option>`;
+    }
+  });
+}
+
+// 更新月份和日期筛选器
+function updateMonthDayFilters() {
+  const yearSelect = document.getElementById('filterYear');
+  const monthSelect = document.getElementById('filterMonth');
+  const selectedYear = yearSelect.value;
+  const selectedMonth = monthSelect.value;
+
+  // 如果选择了年份，只显示该年有的月份；如果没选年份，显示所有有订单的月份
+  // 这里简化处理：直接重新初始化所有筛选器
+  initOrderFilters();
+  yearSelect.value = selectedYear;
+  monthSelect.value = selectedMonth;
 }
 
 // 绑定事件
@@ -482,17 +469,12 @@ function bindEvents() {
 // 导出全局函数供 HTML 调用
 window.openDishModal = openDishModal;
 window.closeDishModal = closeDishModal;
-window.openCategoryModal = openCategoryModal;
-window.closeCategoryModal = closeCategoryModal;
 window.editDish = editDish;
 window.deleteDish = deleteDish;
+window.openCategoryModal = openCategoryModal;
+window.closeCategoryModal = closeCategoryModal;
 window.editCategory = editCategory;
 window.deleteCategory = deleteCategory;
 
 // 启动
-if (window.firebaseReady) {
-  init();
-} else {
-  window.onFirebaseReady = init;
-}
-
+init();

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>小🍐 专属点餐台</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <!-- 顶部栏 -->
@@ -75,20 +76,14 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyCF1p2yOenuFcz_QLOLk2t-90YHzvOToTk",
-      authDomain: "xiaolifood.firebaseapp.com",
-      projectId: "xiaolifood",
-      storageBucket: "xiaolifood.firebasestorage.app",
-      messagingSenderId: "804456151001",
-      appId: "1:804456151001:web:50458a5c3df534be474bc8"
-    };
+    // Supabase 配置
+    const supabaseUrl = 'https://YOUR_PROJECT_URL.supabase.co';
+    const supabaseAnonKey = 'YOUR_ANON_KEY';
 
-    firebase.initializeApp(firebaseConfig);
-    const firestore = firebase.firestore();
+    // 初始化 Supabase 客户端
+    window.supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+  </script>
 
     // 将方法挂载到全局
     window.db = {};

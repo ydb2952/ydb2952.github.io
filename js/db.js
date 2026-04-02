@@ -1,3 +1,18 @@
+// Supabase 配置
+const SUPABASE_URL = 'https://YOUR_PROJECT_URL.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+
+// Supabase 客户端实例
+let supabase = null;
+
+// 初始化
+async function init() {
+  supabase = window.supabase;
+  if (!supabase) {
+    throw new Error('Supabase 客户端未初始化，请刷新页面');
+  }
+}
+
 // ========== 工具函数 ==========
 
 // Blob 转 Base64
@@ -10,25 +25,24 @@ function blobToBase64(blob) {
   });
 }
 
-// 获取 Firestore 实例
-function getFS() {
-  return window.db;
-}
-
 // ========== 菜品操作 ==========
 
 async function addDish(dish) {
   try {
     let imageData = dish.image;
+    // 如果有图片（Blob），转换为 base64
     if (dish.image instanceof Blob) {
       imageData = await blobToBase64(dish.image);
     }
     const dishData = {
       ...dish,
       image: imageData,
-      createdAt: Date.now()
+      created_at: new Date().toISOString()
     };
-    await getFS().collection('dishes').doc(dish.id).set(dishData);
+    const { data, error } = await supabase
+      .from('dishes')
+      .insert(dishData);
+    if (error) throw error;
     return dish.id;
   } catch (error) {
     console.error('添加菜品失败:', error);
@@ -39,6 +53,7 @@ async function addDish(dish) {
 async function updateDish(dish) {
   try {
     let imageData = dish.image;
+    // 如果有图片（Blob），转换为 base64
     if (dish.image instanceof Blob) {
       imageData = await blobToBase64(dish.image);
     }
@@ -46,7 +61,11 @@ async function updateDish(dish) {
       ...dish,
       image: imageData
     };
-    await getFS().collection('dishes').doc(dish.id).set(dishData);
+    const { data, error } = await supabase
+      .from('dishes')
+      .update(dishData)
+      .eq('id', dish.id);
+    if (error) throw error;
     return dish.id;
   } catch (error) {
     console.error('更新菜品失败:', error);
@@ -56,7 +75,11 @@ async function updateDish(dish) {
 
 async function deleteDish(id) {
   try {
-    await getFS().collection('dishes').doc(id).delete();
+    const { error } = await supabase
+      .from('dishes')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
   } catch (error) {
     console.error('删除菜品失败:', error);
     throw error;
@@ -65,12 +88,13 @@ async function deleteDish(id) {
 
 async function getDishes(category = null) {
   try {
-    let query = getFS().collection('dishes');
+    let query = supabase.from('dishes').select('*');
     if (category && category !== 'all') {
-      query = query.where('category', '==', category);
+      query = query.eq('category', category);
     }
-    const snapshot = await query.get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error('获取菜品失败:', error);
     throw error;
@@ -79,11 +103,13 @@ async function getDishes(category = null) {
 
 async function getDish(id) {
   try {
-    const doc = await getFS().collection('dishes').doc(id).get();
-    if (doc.exists) {
-      return { id: doc.id, ...doc.data() };
-    }
-    return null;
+    const { data, error } = await supabase
+      .from('dishes')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('获取菜品失败:', error);
     throw error;
@@ -94,8 +120,12 @@ async function getDish(id) {
 
 async function getCategories() {
   try {
-    const snapshot = await getFS().collection('categories').orderBy('order').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('order', { ascending: true });
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error('获取分类失败:', error);
     throw error;
@@ -104,7 +134,10 @@ async function getCategories() {
 
 async function addCategory(category) {
   try {
-    await getFS().collection('categories').doc(category.id).set(category);
+    const { error } = await supabase
+      .from('categories')
+      .insert(category);
+    if (error) throw error;
     return category.id;
   } catch (error) {
     console.error('添加分类失败:', error);
@@ -114,7 +147,11 @@ async function addCategory(category) {
 
 async function updateCategory(category) {
   try {
-    await getFS().collection('categories').doc(category.id).set(category);
+    const { error } = await supabase
+      .from('categories')
+      .update(category)
+      .eq('id', category.id);
+    if (error) throw error;
     return category.id;
   } catch (error) {
     console.error('更新分类失败:', error);
@@ -124,14 +161,18 @@ async function updateCategory(category) {
 
 async function deleteCategory(id) {
   try {
-    const dishesSnapshot = await getFS().collection('dishes').where('category', '==', id).get();
-    const batch = getFS().batch();
-    dishesSnapshot.docs.forEach(doc => {
-      batch.update(doc.ref, { category: 'all' });
-    });
-    await batch.commit();
+    // 将该分类下的菜品移到默认分类
+    const { data: dishes, error: getDishesError } = await supabase
+      .from('dishes')
+      .update({ category: 'all' })
+      .eq('category', id);
+    if (getDishesError) throw getDishesError;
 
-    await getFS().collection('categories').doc(id).delete();
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
   } catch (error) {
     console.error('删除分类失败:', error);
     throw error;
@@ -140,11 +181,13 @@ async function deleteCategory(id) {
 
 async function getCategory(id) {
   try {
-    const doc = await getFS().collection('categories').doc(id).get();
-    if (doc.exists) {
-      return { id: doc.id, ...doc.data() };
-    }
-    return null;
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('获取分类失败:', error);
     throw error;
@@ -155,7 +198,14 @@ async function getCategory(id) {
 
 async function addOrder(order) {
   try {
-    await getFS().collection('orders').doc(order.id).set(order);
+    const orderData = {
+      ...order,
+      created_at: new Date().toISOString()
+    };
+    const { error } = await supabase
+      .from('orders')
+      .insert(orderData);
+    if (error) throw error;
     return order.id;
   } catch (error) {
     console.error('添加订单失败:', error);
@@ -165,8 +215,12 @@ async function addOrder(order) {
 
 async function getOrders() {
   try {
-    const snapshot = await getFS().collection('orders').orderBy('createdAt', 'desc').get();
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
   } catch (error) {
     console.error('获取订单失败:', error);
     throw error;
@@ -175,11 +229,13 @@ async function getOrders() {
 
 async function getOrder(id) {
   try {
-    const doc = await getFS().collection('orders').doc(id).get();
-    if (doc.exists) {
-      return { id: doc.id, ...doc.data() };
-    }
-    return null;
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) throw error;
+    return data;
   } catch (error) {
     console.error('获取订单失败:', error);
     throw error;
@@ -188,6 +244,7 @@ async function getOrder(id) {
 
 // ========== 初始化 ==========
 
+// 初始化默认分类（如果不存在）
 async function initDefaultCategories() {
   const defaults = [
     { id: 'all', name: '全部', order: 0 },
@@ -197,25 +254,27 @@ async function initDefaultCategories() {
   ];
 
   for (const cat of defaults) {
-    const doc = await getFS().collection('categories').doc(cat.id).get();
-    if (!doc.exists) {
-      await getFS().collection('categories').doc(cat.id).set(cat);
+    const existing = await getCategory(cat.id);
+    if (!existing) {
+      await addCategory(cat);
     }
   }
 }
 
-// 将方法添加到全局 db 对象上
-window.db.init = initDefaultCategories;
-window.db.getDishes = getDishes;
-window.db.getDish = getDish;
-window.db.addDish = addDish;
-window.db.updateDish = updateDish;
-window.db.deleteDish = deleteDish;
-window.db.getCategories = getCategories;
-window.db.getCategory = getCategory;
-window.db.addCategory = addCategory;
-window.db.updateCategory = updateCategory;
-window.db.deleteCategory = deleteCategory;
-window.db.getOrders = getOrders;
-window.db.getOrder = getOrder;
-window.db.addOrder = addOrder;
+// 导出 db 对象供外部使用
+const db = {
+  init,
+  getDishes,
+  getDish,
+  addDish,
+  updateDish,
+  deleteDish,
+  getCategories,
+  getCategory,
+  addCategory,
+  updateCategory,
+  deleteCategory,
+  getOrders,
+  getOrder,
+  addOrder
+};
