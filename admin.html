@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>管理后台 - 小🍐 专属点餐台</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="admin-header">
+    <h1>管理后台</h1>
+    <button class="icon-btn" onclick="window.location.href='index.html'">← 返回</button>
+  </header>
+
+  <!-- 菜品管理 -->
+  <main id="dishManagement" class="admin-main">
+    <h2>菜品管理</h2>
+    <button class="form-btn add-btn-margin" id="addDishBtn">+ 添加菜品</button>
+    <div class="dish-grid" id="adminDishGrid">
+      <!-- 动态生成菜品卡片 -->
+    </div>
+  </main>
+
+  <!-- 分类管理 -->
+  <main id="categoryManagement" class="admin-main order-history">
+    <h2>分类管理</h2>
+    <button class="form-btn add-btn-margin" id="addCategoryBtn">+ 添加分类</button>
+    <div id="categoryList">
+      <!-- 动态生成分类列表 -->
+    </div>
+  </main>
+
+  <!-- 订单管理 -->
+  <main id="orderManagement" class="admin-main order-history">
+    <h2>订单管理</h2>
+    <div class="filter-row">
+      <select id="filterYear" class="form-select filter-select">
+        <option value="">全部年份</option>
+      </select>
+      <select id="filterMonth" class="form-select filter-select">
+        <option value="">全部月份</option>
+      </select>
+      <select id="filterDay" class="form-select filter-select">
+        <option value="">全部日期</option>
+      </select>
+    </div>
+    <div id="orderList">
+      <!-- 动态生成订单列表 -->
+    </div>
+  </main>
+
+  <!-- 添加/编辑菜品表单弹窗 -->
+  <div class="modal-overlay" id="dishModalOverlay"></div>
+  <div class="cart-modal dish-modal-max-height" id="dishModal">
+    <div class="cart-header">
+      <h2 id="dishModalTitle">添加菜品</h2>
+      <button class="icon-btn" id="closeDishModal">✕</button>
+    </div>
+    <div class="modal-padding">
+      <input type="hidden" id="dishId">
+      <div class="form-group">
+        <label class="form-label">菜名</label>
+        <input type="text" class="form-input" id="dishName" placeholder="请输入菜名">
+      </div>
+      <div class="form-group">
+        <label class="form-label">价格</label>
+        <input type="number" class="form-input" id="dishPrice" placeholder="请输入价格" step="0.5">
+      </div>
+      <div class="form-group">
+        <label class="form-label">分类</label>
+        <select class="form-select" id="dishCategory">
+          <!-- 动态生成分类选项 -->
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">菜品图片</label>
+        <div class="image-preview" id="imagePreview">
+          <span>点击上传图片</span>
+        </div>
+        <input type="file" id="dishImage" accept="image/*" class="hidden-file-input">
+        <button class="form-btn select-image-btn" id="selectImageBtn">选择图片</button>
+      </div>
+      <button class="form-btn" id="saveDishBtn">保存</button>
+      <button class="form-btn delete-btn delete-dish-btn" id="deleteDishBtn">删除菜品</button>
+    </div>
+  </div>
+
+  <!-- 添加/编辑分类表单弹窗 -->
+  <div class="modal-overlay" id="categoryModalOverlay"></div>
+  <div class="cart-modal category-modal-max-height" id="categoryModal">
+    <div class="cart-header">
+      <h2 id="categoryModalTitle">添加分类</h2>
+      <button class="icon-btn" id="closeCategoryModal">✕</button>
+    </div>
+    <div class="modal-padding">
+      <input type="hidden" id="categoryId">
+      <div class="form-group">
+        <label class="form-label">分类名称</label>
+        <input type="text" class="form-input" id="categoryName" placeholder="请输入分类名称">
+      </div>
+      <button class="form-btn" id="saveCategoryBtn">保存</button>
+      <button class="form-btn delete-btn delete-dish-btn" id="deleteCategoryBtn">删除分类</button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
