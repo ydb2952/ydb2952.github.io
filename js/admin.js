@@ -64,10 +64,7 @@ async function renderAdminDishes() {
   }
 
   const dishesHtml = await Promise.all(dishes.map(async dish => {
-    let imageUrl = '';
-    if (dish.image instanceof Blob) {
-      imageUrl = await blobToDataURL(dish.image);
-    }
+    const imageUrl = dish.image ? await blobToDataURL(dish.image) : '';
 
     return `
       <div class="dish-card" data-id="${dish.id}">
@@ -235,7 +232,7 @@ async function openDishModal(dish = null) {
   // 编辑模式：填充表单数据
   if (dish && typeof dish === 'object' && dish.id) {
     editingDish = dish;
-    selectedImage = dish.image;
+    selectedImage = dish.image; // 现在是 URL 字符串
     title.textContent = '编辑菜品';
     document.getElementById('dishId').value = dish.id;
     document.getElementById('dishName').value = dish.name || '';
@@ -243,8 +240,8 @@ async function openDishModal(dish = null) {
     document.getElementById('dishCategory').value = dish.category || '';
     deleteBtn.classList.remove('delete-dish-btn');
 
-    // 只有当 image 是 Blob 类型时才转换
-    if (dish.image instanceof Blob) {
+    // 显示图片预览
+    if (dish.image) {
       const imageUrl = await blobToDataURL(dish.image);
       const preview = document.getElementById('imagePreview');
       preview.innerHTML = `<img src="${imageUrl}" style="max-width: 100%; max-height: 100%;">`;
@@ -493,5 +490,9 @@ window.editCategory = editCategory;
 window.deleteCategory = deleteCategory;
 
 // 启动
-init();
+if (window.firebaseReady) {
+  init();
+} else {
+  window.onFirebaseReady = init;
+}
 

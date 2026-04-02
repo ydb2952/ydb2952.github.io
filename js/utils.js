@@ -47,9 +47,29 @@ async function compressImage(file, maxWidth = 800, maxHeight = 800, quality = 0.
   });
 }
 
+// Blob 转 Base64 (DataURL)
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 // Blob 转 DataURL
 function blobToDataURL(blob) {
   return new Promise((resolve, reject) => {
+    // 如果已经是字符串（URL），直接返回
+    if (typeof blob === 'string') {
+      resolve(blob);
+      return;
+    }
+    // 如果是 null 或 undefined，返回空字符串
+    if (!blob) {
+      resolve('');
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = () => reject(new Error('Blob转换失败'));

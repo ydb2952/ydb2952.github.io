@@ -1,230 +1,221 @@
-class FoodDB {
-  constructor(dbName = 'foodForXiaoLi', version = 1) {
-    this.dbName = dbName;
-    this.version = version;
-    this.db = null;
-  }
+// ========== 工具函数 ==========
 
-  _ensureInitialized() {
-    if (!this.db) {
-      throw new Error('数据库未初始化,请先调用 init() 方法');
+// Blob 转 Base64
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// 获取 Firestore 实例
+function getFS() {
+  return window.db;
+}
+
+// ========== 菜品操作 ==========
+
+async function addDish(dish) {
+  try {
+    let imageData = dish.image;
+    if (dish.image instanceof Blob) {
+      imageData = await blobToBase64(dish.image);
     }
-  }
-
-  async init() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, this.version);
-
-      request.onerror = () => {
-        reject(new Error('数据库打开失败'));
-      };
-
-      request.onsuccess = (event) => {
-        this.db = event.target.result;
-        resolve(this.db);
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-
-        // 创建菜品表
-        if (!db.objectStoreNames.contains('dishes')) {
-          const dishStore = db.createObjectStore('dishes', { keyPath: 'id' });
-          dishStore.createIndex('category', 'category', { unique: false });
-          dishStore.createIndex('createdAt', 'createdAt', { unique: false });
-        }
-
-        // 创建分类表
-        if (!db.objectStoreNames.contains('categories')) {
-          const categoryStore = db.createObjectStore('categories', { keyPath: 'id' });
-          categoryStore.createIndex('order', 'order', { unique: false });
-        }
-
-        // 创建订单表
-        if (!db.objectStoreNames.contains('orders')) {
-          const orderStore = db.createObjectStore('orders', { keyPath: 'id' });
-          orderStore.createIndex('createdAt', 'createdAt', { unique: false });
-        }
-
-        // 初始化默认分类
-        this.initDefaultCategories(event.target.transaction);
-      };
-    });
-  }
-
-  async initDefaultCategories(transaction) {
-    const categories = [
-      { id: 'all', name: '全部', order: 0 },
-      { id: 'main', name: '主食', order: 1 },
-      { id: 'soup', name: '汤品', order: 2 },
-      { id: 'dessert', name: '甜点', order: 3 }
-    ];
-
-    const store = transaction.objectStore('categories');
-    for (const cat of categories) {
-      try {
-        store.put(cat);
-      } catch (error) {
-        console.error('初始化默认分类失败:', error);
-      }
-    }
-  }
-
-  // 菜品操作
-  async addDish(dish) {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['dishes'], 'readwrite');
-      const store = transaction.objectStore('dishes');
-      const request = store.add(dish);
-
-      request.onsuccess = () => resolve(dish.id);
-      request.onerror = () => reject(new Error('添加菜品失败'));
-    });
-  }
-
-  async updateDish(dish) {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['dishes'], 'readwrite');
-      const store = transaction.objectStore('dishes');
-      const request = store.put(dish);
-
-      request.onsuccess = () => resolve(dish.id);
-      request.onerror = () => reject(new Error('更新菜品失败'));
-    });
-  }
-
-  async deleteDish(id) {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['dishes'], 'readwrite');
-      const store = transaction.objectStore('dishes');
-      const request = store.delete(id);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('删除菜品失败'));
-    });
-  }
-
-  async getDishes(category = null) {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['dishes'], 'readonly');
-      const store = transaction.objectStore('dishes');
-      const request = category && category !== 'all'
-        ? store.index('category').getAll(category)
-        : store.getAll();
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error('获取菜品失败'));
-    });
-  }
-
-  async getDish(id) {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['dishes'], 'readonly');
-      const store = transaction.objectStore('dishes');
-      const request = store.get(id);
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error('获取菜品失败'));
-    });
-  }
-
-  // 分类操作
-  async getCategories() {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['categories'], 'readonly');
-      const store = transaction.objectStore('categories');
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const categories = request.result.sort((a, b) => a.order - b.order);
-        resolve(categories);
-      };
-      request.onerror = () => reject(new Error('获取分类失败'));
-    });
-  }
-
-  async addCategory(category) {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['categories'], 'readwrite');
-      const store = transaction.objectStore('categories');
-      const request = store.add(category);
-
-      request.onsuccess = () => resolve(category.id);
-      request.onerror = () => reject(new Error('添加分类失败'));
-    });
-  }
-
-  async updateCategory(category) {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['categories'], 'readwrite');
-      const store = transaction.objectStore('categories');
-      const request = store.put(category);
-
-      request.onsuccess = () => resolve(category.id);
-      request.onerror = () => reject(new Error('更新分类失败'));
-    });
-  }
-
-  async deleteCategory(id) {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['categories'], 'readwrite');
-      const store = transaction.objectStore('categories');
-      const request = store.delete(id);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(new Error('删除分类失败'));
-    });
-  }
-
-  // 订单操作
-  async addOrder(order) {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['orders'], 'readwrite');
-      const store = transaction.objectStore('orders');
-      const request = store.add(order);
-
-      request.onsuccess = () => resolve(order.id);
-      request.onerror = () => reject(new Error('添加订单失败'));
-    });
-  }
-
-  async getOrders() {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['orders'], 'readonly');
-      const store = transaction.objectStore('orders');
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        const orders = request.result.sort((a, b) => b.createdAt - a.createdAt);
-        resolve(orders);
-      };
-      request.onerror = () => reject(new Error('获取订单失败'));
-    });
-  }
-
-  async getOrder(id) {
-    this._ensureInitialized();
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['orders'], 'readonly');
-      const store = transaction.objectStore('orders');
-      const request = store.get(id);
-
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(new Error('获取订单失败'));
-    });
+    const dishData = {
+      ...dish,
+      image: imageData,
+      createdAt: Date.now()
+    };
+    await getFS().collection('dishes').doc(dish.id).set(dishData);
+    return dish.id;
+  } catch (error) {
+    console.error('添加菜品失败:', error);
+    throw error;
   }
 }
 
-// 导出单例实例
-const db = new FoodDB();
+async function updateDish(dish) {
+  try {
+    let imageData = dish.image;
+    if (dish.image instanceof Blob) {
+      imageData = await blobToBase64(dish.image);
+    }
+    const dishData = {
+      ...dish,
+      image: imageData
+    };
+    await getFS().collection('dishes').doc(dish.id).set(dishData);
+    return dish.id;
+  } catch (error) {
+    console.error('更新菜品失败:', error);
+    throw error;
+  }
+}
+
+async function deleteDish(id) {
+  try {
+    await getFS().collection('dishes').doc(id).delete();
+  } catch (error) {
+    console.error('删除菜品失败:', error);
+    throw error;
+  }
+}
+
+async function getDishes(category = null) {
+  try {
+    let query = getFS().collection('dishes');
+    if (category && category !== 'all') {
+      query = query.where('category', '==', category);
+    }
+    const snapshot = await query.get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('获取菜品失败:', error);
+    throw error;
+  }
+}
+
+async function getDish(id) {
+  try {
+    const doc = await getFS().collection('dishes').doc(id).get();
+    if (doc.exists) {
+      return { id: doc.id, ...doc.data() };
+    }
+    return null;
+  } catch (error) {
+    console.error('获取菜品失败:', error);
+    throw error;
+  }
+}
+
+// ========== 分类操作 ==========
+
+async function getCategories() {
+  try {
+    const snapshot = await getFS().collection('categories').orderBy('order').get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('获取分类失败:', error);
+    throw error;
+  }
+}
+
+async function addCategory(category) {
+  try {
+    await getFS().collection('categories').doc(category.id).set(category);
+    return category.id;
+  } catch (error) {
+    console.error('添加分类失败:', error);
+    throw error;
+  }
+}
+
+async function updateCategory(category) {
+  try {
+    await getFS().collection('categories').doc(category.id).set(category);
+    return category.id;
+  } catch (error) {
+    console.error('更新分类失败:', error);
+    throw error;
+  }
+}
+
+async function deleteCategory(id) {
+  try {
+    const dishesSnapshot = await getFS().collection('dishes').where('category', '==', id).get();
+    const batch = getFS().batch();
+    dishesSnapshot.docs.forEach(doc => {
+      batch.update(doc.ref, { category: 'all' });
+    });
+    await batch.commit();
+
+    await getFS().collection('categories').doc(id).delete();
+  } catch (error) {
+    console.error('删除分类失败:', error);
+    throw error;
+  }
+}
+
+async function getCategory(id) {
+  try {
+    const doc = await getFS().collection('categories').doc(id).get();
+    if (doc.exists) {
+      return { id: doc.id, ...doc.data() };
+    }
+    return null;
+  } catch (error) {
+    console.error('获取分类失败:', error);
+    throw error;
+  }
+}
+
+// ========== 订单操作 ==========
+
+async function addOrder(order) {
+  try {
+    await getFS().collection('orders').doc(order.id).set(order);
+    return order.id;
+  } catch (error) {
+    console.error('添加订单失败:', error);
+    throw error;
+  }
+}
+
+async function getOrders() {
+  try {
+    const snapshot = await getFS().collection('orders').orderBy('createdAt', 'desc').get();
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (error) {
+    console.error('获取订单失败:', error);
+    throw error;
+  }
+}
+
+async function getOrder(id) {
+  try {
+    const doc = await getFS().collection('orders').doc(id).get();
+    if (doc.exists) {
+      return { id: doc.id, ...doc.data() };
+    }
+    return null;
+  } catch (error) {
+    console.error('获取订单失败:', error);
+    throw error;
+  }
+}
+
+// ========== 初始化 ==========
+
+async function initDefaultCategories() {
+  const defaults = [
+    { id: 'all', name: '全部', order: 0 },
+    { id: 'main', name: '主食', order: 1 },
+    { id: 'soup', name: '汤品', order: 2 },
+    { id: 'dessert', name: '甜点', order: 3 }
+  ];
+
+  for (const cat of defaults) {
+    const doc = await getFS().collection('categories').doc(cat.id).get();
+    if (!doc.exists) {
+      await getFS().collection('categories').doc(cat.id).set(cat);
+    }
+  }
+}
+
+// 将方法添加到全局 db 对象上
+window.db.init = initDefaultCategories;
+window.db.getDishes = getDishes;
+window.db.getDish = getDish;
+window.db.addDish = addDish;
+window.db.updateDish = updateDish;
+window.db.deleteDish = deleteDish;
+window.db.getCategories = getCategories;
+window.db.getCategory = getCategory;
+window.db.addCategory = addCategory;
+window.db.updateCategory = updateCategory;
+window.db.deleteCategory = deleteCategory;
+window.db.getOrders = getOrders;
+window.db.getOrder = getOrder;
+window.db.addOrder = addOrder;

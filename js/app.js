@@ -303,8 +303,9 @@ function bindEvents() {
   document.getElementById('settingsBtn').addEventListener('click', (e) => {
     e.stopPropagation();
     const menu = document.getElementById('adminMenu');
-    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
-    document.getElementById('menuOverlay').classList.toggle('show');
+    const isHidden = menu.style.display !== 'block';
+    menu.style.display = isHidden ? 'block' : 'none';
+    document.getElementById('menuOverlay').classList.toggle('show', isHidden);
   });
 
   // 管理菜单项
@@ -332,4 +333,8 @@ function bindEvents() {
 }
 
 // 启动应用
-init();
+if (window.firebaseReady) {
+  init();
+} else {
+  window.onFirebaseReady = init;
+}
