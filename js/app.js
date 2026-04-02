@@ -22,7 +22,7 @@ async function init() {
     bindEvents();
   } catch (error) {
     console.error('初始化失败:', error);
-    const errorMsg = error ? error.message || error.toString();
+    const errorMsg = error?.message || error?.toString() || '未知错误';
     showToast(`初始化失败: ${errorMsg}，请稍后重试`);
   }
 }
@@ -334,8 +334,4 @@ function bindEvents() {
 }
 
 // 启动应用
-if (window.firebaseReady) {
-  init();
-} else {
-  window.onFirebaseReady = init;
-}
+init();

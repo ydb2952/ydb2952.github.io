@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:slbmodvdaqglyreqrike.supabase.co)",
+      "Bash(curl -sI --connect-timeout 10 \"https://slbmodvdaqglyreqrike.supabase.co/rest/v1/\")",
+      "Bash(curl -s \"https://slbmodvdaqglyreqrike.supabase.co/rest/v1/dishes?select=*\" -H \"apikey: sb_publishable_ntFYPxBhf1IhVjyiSLh1DQ_2ivlRD4a\" -H \"Authorization: Bearer sb_publishable_ntFYPxBhf1IhVjyiSLh1DQ_2ivlRD4a\")",
+      "Bash(curl -s \"https://slbmodvdaqglyreqrike.supabase.co/rest/v1/orders?select=*\" -H \"apikey: sb_publishable_ntFYPxBhf1IhVjyiSLh1DQ_2ivlRD4a\" -H \"Authorization: Bearer sb_publishable_ntFYPxBhf1IhVjyiSLh1DQ_2ivlRD4a\")",
+      "Bash(python3:*)"
+    ]
+  }
+}

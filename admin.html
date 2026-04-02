@@ -22,7 +22,7 @@
   </main>
 
   <!-- 分类管理 -->
-  <main id="categoryManagement" class="admin-main order-history">
+  <main id="categoryManagement" class="admin-main" style="display: none;">
     <h2>分类管理</h2>
     <button class="form-btn add-btn-margin" id="addCategoryBtn">+ 添加分类</button>
     <div id="categoryList">
@@ -31,7 +31,7 @@
   </main>
 
   <!-- 订单管理 -->
-  <main id="orderManagement" class="admin-main order-history">
+  <main id="orderManagement" class="admin-main" style="display: none;">
     <h2>订单管理</h2>
     <div class="filter-row">
       <select id="filterYear" class="form-select filter-select">
@@ -106,14 +106,14 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     // Supabase 配置
     const supabaseUrl = 'https://slbmodvdaqglyreqrike.supabase.co';
     const supabaseAnonKey = 'sb_publishable_ntFYPxBhf1IhVjyiSLh1DQ_2ivlRD4a';
 
     // 初始化 Supabase 客户端
-    window.supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+    window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
   </script>
   <script src="js/utils.js"></script>
   <script src="js/db.js"></script>

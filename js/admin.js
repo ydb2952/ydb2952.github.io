@@ -1,9 +1,8 @@
 // 全局状态
-let currentTab = 'dishes';
+let currentTab = new URLSearchParams(window.location.search).get('tab') || 'dishes';
 let dishes = [];
 let categories = [];
 let editingDish = null;
-let editingCategory = null;
 let selectedImage = null;
 
 // 初始化
@@ -11,6 +10,7 @@ async function init() {
   try {
     await db.init();
     await loadData();
+    switchTab(currentTab);
     bindEvents();
   } catch (error) {
     console.error('初始化失败:', error);
@@ -362,62 +362,6 @@ async function renderOrders() {
       </div>
     `;
   }).join('');
-}
-
-// 初始化订单筛选器
-async function initOrderFilters() {
-  const orders = await db.getOrders();
-  const yearSelect = document.getElementById('filterYear');
-  const monthSelect = document.getElementById('filterMonth');
-  const daySelect = document.getElementById('filterDay');
-
-  // 获取所有订单的年份、月份、日期
-  const years = new Set();
-  const months = new Set();
-  const days = new Set();
-
-  orders.forEach(order => {
-    const date = new Date(order.created_at || order.createdAt);
-    years.add(String(date.getFullYear()));
-    months.add(String(date.getMonth() + 1).padStart(2, '0'));
-    days.add(String(date.getDate()).padStart(2, '0'));
-  });
-
-  // 填充年份
-  yearSelect.innerHTML = '<option value="">全部年份</option>';
-  [...years].sort().reverse().forEach(year => {
-    yearSelect.innerHTML += `<option value="${year}">${year}</option>`;
-  });
-
-  // 填充月份
-  monthSelect.innerHTML = '<option value="">全部月份</option>';
-  ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].forEach(month => {
-    if (months.has(month)) {
-      monthSelect.innerHTML += `<option value="${month}">${month}月</option>`;
-    }
-  });
-
-  // 填充日期
-  daySelect.innerHTML = '<option value="">全部日期</option>';
-  ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '30', '31'].forEach(day => {
-    if (days.has(day)) {
-      daySelect.innerHTML += `<option value="${day}">${day}日</option>`;
-    }
-  });
-}
-
-// 更新月份和日期筛选器
-function updateMonthDayFilters() {
-  const yearSelect = document.getElementById('filterYear');
-  const monthSelect = document.getElementById('filterMonth');
-  const selectedYear = yearSelect.value;
-  const selectedMonth = monthSelect.value;
-
-  // 如果选择了年份，只显示该年有的月份；如果没选年份，显示所有有订单的月份
-  // 这里简化处理：直接重新初始化所有筛选器
-  initOrderFilters();
-  yearSelect.value = selectedYear;
-  monthSelect.value = selectedMonth;
 }
 
 // 绑定事件

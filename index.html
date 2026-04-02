@@ -75,14 +75,14 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     // Supabase 配置
     const supabaseUrl = 'https://slbmodvdaqglyreqrike.supabase.co';
     const supabaseAnonKey = 'sb_publishable_ntFYPxBhf1IhVjyiSLh1DQ_2ivlRD4a';
 
     // 初始化 Supabase 客户端
-    window.supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
+    window.supabaseClient = supabase.createClient(supabaseUrl, supabaseAnonKey);
   </script>
   <script src="js/utils.js"></script>
   <script src="js/db.js"></script>

@@ -1,14 +1,10 @@
-// Supabase 配置
-const SUPABASE_URL = 'https://YOUR_PROJECT_URL.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
-
 // Supabase 客户端实例
-let supabase = null;
+let supabaseClient = null;
 
 // 初始化
 async function init() {
-  supabase = window.supabase;
-  if (!supabase) {
+  supabaseClient = window.supabaseClient;
+  if (!supabaseClient) {
     throw new Error('Supabase 客户端未初始化，请刷新页面');
   }
 }
@@ -39,7 +35,7 @@ async function addDish(dish) {
       image: imageData,
       created_at: new Date().toISOString()
     };
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('dishes')
       .insert(dishData);
     if (error) throw error;
@@ -61,7 +57,7 @@ async function updateDish(dish) {
       ...dish,
       image: imageData
     };
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('dishes')
       .update(dishData)
       .eq('id', dish.id);
@@ -75,7 +71,7 @@ async function updateDish(dish) {
 
 async function deleteDish(id) {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('dishes')
       .delete()
       .eq('id', id);
@@ -88,7 +84,7 @@ async function deleteDish(id) {
 
 async function getDishes(category = null) {
   try {
-    let query = supabase.from('dishes').select('*');
+    let query = supabaseClient.from('dishes').select('*');
     if (category && category !== 'all') {
       query = query.eq('category', category);
     }
@@ -103,7 +99,7 @@ async function getDishes(category = null) {
 
 async function getDish(id) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('dishes')
       .select('*')
       .eq('id', id)
@@ -120,7 +116,7 @@ async function getDish(id) {
 
 async function getCategories() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('categories')
       .select('*')
       .order('order', { ascending: true });
@@ -134,7 +130,7 @@ async function getCategories() {
 
 async function addCategory(category) {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('categories')
       .insert(category);
     if (error) throw error;
@@ -147,7 +143,7 @@ async function addCategory(category) {
 
 async function updateCategory(category) {
   try {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('categories')
       .update(category)
       .eq('id', category.id);
@@ -162,13 +158,13 @@ async function updateCategory(category) {
 async function deleteCategory(id) {
   try {
     // 将该分类下的菜品移到默认分类
-    const { data: dishes, error: getDishesError } = await supabase
+    const { data: dishes, error: getDishesError } = await supabaseClient
       .from('dishes')
       .update({ category: 'all' })
       .eq('category', id);
     if (getDishesError) throw getDishesError;
 
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('categories')
       .delete()
       .eq('id', id);
@@ -181,7 +177,7 @@ async function deleteCategory(id) {
 
 async function getCategory(id) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('categories')
       .select('*')
       .eq('id', id)
@@ -202,7 +198,7 @@ async function addOrder(order) {
       ...order,
       created_at: new Date().toISOString()
     };
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('orders')
       .insert(orderData);
     if (error) throw error;
@@ -215,7 +211,7 @@ async function addOrder(order) {
 
 async function getOrders() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false });
@@ -229,7 +225,7 @@ async function getOrders() {
 
 async function getOrder(id) {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('orders')
       .select('*')
       .eq('id', id)
