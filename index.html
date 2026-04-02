@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>小🍐 专属点餐台</title>
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
   <!-- 顶部栏 -->
@@ -76,123 +75,17 @@
   <!-- Toast -->
   <div class="toast" id="toast"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     // Supabase 配置
-    const supabaseUrl = 'https://YOUR_PROJECT_URL.supabase.co';
-    const supabaseAnonKey = 'YOUR_ANON_KEY';
+    const supabaseUrl = 'https://slbmodvdaqglyreqrike.supabase.co';
+    const supabaseAnonKey = 'sb_publishable_ntFYPxBhf1IhVjyiSLh1DQ_2ivlRD4a';
 
     // 初始化 Supabase 客户端
     window.supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
   </script>
-
-    // 将方法挂载到全局
-    window.db = {};
-
-    // 菜品操作
-    window.db.init = async function() {
-      const defaults = [
-        { id: 'all', name: '全部', order: 0 },
-        { id: 'main', name: '主食', order: 1 },
-        { id: 'soup', name: '汤品', order: 2 },
-        { id: 'dessert', name: '甜点', order: 3 }
-      ];
-      for (const cat of defaults) {
-        const doc = await firestore.collection('categories').doc(cat.id).get();
-        if (!doc.exists) {
-          await firestore.collection('categories').doc(cat.id).set(cat);
-        }
-      }
-    };
-
-    window.db.getDishes = async function(category = null) {
-      let query = firestore.collection('dishes');
-      if (category && category !== 'all') {
-        query = query.where('category', '==', category);
-      }
-      const snapshot = await query.get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    };
-
-    window.db.getDish = async function(id) {
-      const doc = await firestore.collection('dishes').doc(id).get();
-      if (doc.exists) return { id: doc.id, ...doc.data() };
-      return null;
-    };
-
-    window.db.addDish = async function(dish) {
-      let imageData = dish.image;
-      if (dish.image instanceof Blob) {
-        imageData = await blobToBase64(dish.image);
-      }
-      const dishData = { ...dish, image: imageData, createdAt: Date.now() };
-      await firestore.collection('dishes').doc(dish.id).set(dishData);
-      return dish.id;
-    };
-
-    window.db.updateDish = async function(dish) {
-      let imageData = dish.image;
-      if (dish.image instanceof Blob) {
-        imageData = await blobToBase64(dish.image);
-      }
-      const dishData = { ...dish, image: imageData };
-      await firestore.collection('dishes').doc(dish.id).set(dishData);
-      return dish.id;
-    };
-
-    window.db.deleteDish = async function(id) {
-      await firestore.collection('dishes').doc(id).delete();
-    };
-
-    window.db.getCategories = async function() {
-      const snapshot = await firestore.collection('categories').orderBy('order').get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    };
-
-    window.db.getCategory = async function(id) {
-      const doc = await firestore.collection('categories').doc(id).get();
-      if (doc.exists) return { id: doc.id, ...doc.data() };
-      return null;
-    };
-
-    window.db.addCategory = async function(category) {
-      await firestore.collection('categories').doc(category.id).set(category);
-      return category.id;
-    };
-
-    window.db.updateCategory = async function(category) {
-      await firestore.collection('categories').doc(category.id).set(category);
-      return category.id;
-    };
-
-    window.db.deleteCategory = async function(id) {
-      const dishesSnapshot = await firestore.collection('dishes').where('category', '==', id).get();
-      const batch = firestore.batch();
-      dishesSnapshot.docs.forEach(doc => batch.update(doc.ref, { category: 'all' }));
-      await batch.commit();
-      await firestore.collection('categories').doc(id).delete();
-    };
-
-    window.db.getOrders = async function() {
-      const snapshot = await firestore.collection('orders').orderBy('createdAt', 'desc').get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    };
-
-    window.db.getOrder = async function(id) {
-      const doc = await firestore.collection('orders').doc(id).get();
-      if (doc.exists) return { id: doc.id, ...doc.data() };
-      return null;
-    };
-
-    window.db.addOrder = async function(order) {
-      await firestore.collection('orders').doc(order.id).set(order);
-      return order.id;
-    };
-
-    // 通知 app.js 可以开始了
-    window.firebaseReady = true;
-    if (window.onFirebaseReady) window.onFirebaseReady();
-  </script>
   <script src="js/utils.js"></script>
+  <script src="js/db.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
