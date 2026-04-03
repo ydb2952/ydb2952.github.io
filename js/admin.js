@@ -355,7 +355,7 @@ async function renderOrders() {
       <div class="order-item">
         <div class="order-header">
           <span class="order-date">${formatDate(order.created_at || order.createdAt)}</span>
-          <span class="order-total">¥${order.totalAmount.toFixed(2)}</span>
+          <span class="order-total">¥${order.total_amount.toFixed(2)}</span>
         </div>
         <div class="order-items">${itemsSummary}</div>
         ${order.note ? `<div class="order-note">备注: ${order.note}</div>` : ''}
